@@ -32,7 +32,6 @@ CÂU TRẢ LỜI (tiếng Việt):
 
 QA_PROMPT = PromptTemplate.from_template(CUSTOM_PROMPT_TEMPLATE)
 
-
 def get_pdf_docs(pdf_path: str) -> Optional[List[Document]]:
     """Trích văn bản theo TRANG -> Document, giữ metadata page để truy vết nguồn."""
     reader = PdfReader(pdf_path)
@@ -75,29 +74,29 @@ def build_vectorstore(chunks: List[Document], api_key: str) -> Optional[FAISS]:
         print("Kiểm tra GOOGLE_API_KEY và phiên bản langchain_google_genai.")
         return None
 
-
 def build_chain(vs: FAISS, api_key: str) -> Optional[ConversationalRetrievalChain]:
     try:
         llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-pro",           # hoặc "gemini-1.5-flash" cho rẻ/nhanh
+            model="gemini-2.5-flash",
             google_api_key=api_key,
             temperature=0.3,
             convert_system_message_to_human=True,
         )
         memory = ConversationBufferMemory(
             memory_key="chat_history",
-            return_messages=True
+            return_messages=True,
+            output_key="answer"
         )
         retriever = vs.as_retriever(
-            search_type="mmr",               # đa dạng ngữ cảnh
+            search_type="mmr",
             search_kwargs={"k": 5, "fetch_k": 20, "lambda_mult": 0.5}
         )
         chain = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=retriever,
             memory=memory,
-            chain_type_kwargs={"prompt": QA_PROMPT},
-            return_source_documents=True,    # rất hữu ích khi debug/hiển thị nguồn
+            combine_docs_chain_kwargs={"prompt": QA_PROMPT},
+            return_source_documents=True,
         )
         return chain
     except Exception as e:
@@ -137,23 +136,23 @@ def main():
         return
 
     print("Xử lý xong! Bắt đầu hỏi đáp (gõ 'exit' hoặc 'quit' để thoát).")
-    # while True:
-    #     q = input("\nCâu hỏi của bạn: ").strip()
-    #     if q.lower() in {"exit", "quit"}:
-    #         print("Cảm ơn bạn đã sử dụng. Tạm biệt!")
-    #         break
-    #     if not q:
-    #         continue
-    #
-    #     try:
-    #         print("Gemini đang suy nghĩ...")
-    #         result = chain({"question": q})
-    #         answer = result.get("answer") or "Không nhận được câu trả lời."
-    #         print("\nCâu trả lời:", answer)
-    #         # in nguồn để kiểm chứng RAG
-    #         print_sources(result.get("source_documents", []))
-    #     except Exception as e:
-    #         print(f"Đã xảy ra lỗi: {e}")
+
+    while True:
+        q = input("\nCâu hỏi của bạn: ").strip()
+        # q = 'Tóm tắt dạng 2 và 3 sau đó so sánh sự khác biệt giữa hai dạng này.'
+        if q.lower() in {"exit", "quit"}:
+            print("Cảm ơn bạn đã sử dụng. Tạm biệt!")
+            break
+        if not q:
+            continue
+
+        try:
+            print("Gemini đang suy nghĩ...")
+            result = chain.invoke({"question": q})
+            print("Chatbot trả lời: ", result["answer"])
+            print_sources(result["source_documents"])
+        except Exception as e:
+            print(f"Đã xảy ra lỗi: {e}")
 
 
 if __name__ == "__main__":
