@@ -1,4 +1,4 @@
-# RAG-GEMINI-IN-MEMORY-NO-DATABASE-
+# RAG-GEMINI-IN-MEMORY-NO-DATABASE
 Building a raw and the most simple RAG system for extract PDF for Q&A (no Database)
 - Model: GEMINI 2.5 Flash
 - Framework: LangChain
